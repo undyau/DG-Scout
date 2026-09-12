@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.undy.dgscout.model.Course
 import com.undy.dgscout.model.DistanceUnit
@@ -158,24 +159,45 @@ private fun UnitOptionRow(label: String, selected: Boolean, onClick: () -> Unit)
 private fun CourseRow(course: Course, onClick: () -> Unit, onDelete: () -> Unit) {
     val dateFormat = remember { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()) }
     val basketsSet = course.holes.count { it.basket != null }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(course.name)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(course.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    "${course.holes.size} holes · $basketsSet baskets marked · scouted ${dateFormat.format(course.createdAtEpochMs)}"
+                    "${course.holes.size} holes · $basketsSet baskets marked · scouted ${dateFormat.format(course.createdAtEpochMs)}",
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-            IconButton(onClick = onDelete) {
+            IconButton(onClick = { showDeleteConfirmation = true }) {
                 Icon(Icons.Filled.Delete, contentDescription = "Delete course")
             }
         }
+    }
+
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Delete \"${course.name}\"?") },
+            text = { Text("This removes all holes, basket positions, and notes for this course. This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onDelete()
+                    showDeleteConfirmation = false
+                }) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) { Text("Cancel") }
+            }
+        )
     }
 }
 
