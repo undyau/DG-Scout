@@ -10,6 +10,9 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 
 /**
@@ -18,7 +21,8 @@ import java.util.UUID
  */
 class CourseRepository(context: Context) {
 
-    private val coursesDir: File = File(context.applicationContext.filesDir, "courses").apply { mkdirs() }
+    private val appContext = context.applicationContext
+    private val coursesDir: File = File(appContext.filesDir, "courses").apply { mkdirs() }
 
     suspend fun listCourses(): List<Course> = withContext(Dispatchers.IO) {
         coursesDir.listFiles { file -> file.extension == "json" }
@@ -39,6 +43,19 @@ class CourseRepository(context: Context) {
     suspend fun deleteCourse(courseId: String) = withContext(Dispatchers.IO) {
         File(coursesDir, "$courseId.json").delete()
         Unit
+    }
+
+    /** Bundles every course into one JSON file under cacheDir, ready to hand to a share intent. */
+    suspend fun writeExportFile(): File = withContext(Dispatchers.IO) {
+        val export = JSONObject().apply {
+            put("exportedAtEpochMs", System.currentTimeMillis())
+            put("courses", JSONArray().apply { listCourses().forEach { put(courseToJson(it)) } })
+        }
+        val exportsDir = File(appContext.cacheDir, "exports").apply { mkdirs() }
+        val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+        val file = File(exportsDir, "dgscout-export-$stamp.json")
+        file.writeText(export.toString(2))
+        file
     }
 
     companion object {

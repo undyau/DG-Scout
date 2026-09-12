@@ -1,5 +1,8 @@
 package com.undy.dgscout.ui
 
+import android.content.Context
+import android.content.Intent
+import androidx.core.content.FileProvider
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -32,12 +35,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.undy.dgscout.model.Course
 import com.undy.dgscout.model.DistanceUnit
 import com.undy.dgscout.model.UnitPreference
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -47,6 +52,7 @@ fun CourseListScreen(
     viewModel: CourseViewModel,
     onOpenCourse: (String) -> Unit
 ) {
+    val context = LocalContext.current
     val courses by viewModel.courses.collectAsState()
     val unitPreference by viewModel.unitPreference.collectAsState()
     val effectiveUnit by viewModel.effectiveDistanceUnit.collectAsState()
@@ -58,6 +64,10 @@ fun CourseListScreen(
             TopAppBar(
                 title = { Text("DG Scout") },
                 actions = {
+                    TextButton(
+                        onClick = { viewModel.exportAllData { file -> shareExportFile(context, file) } },
+                        enabled = courses.isNotEmpty()
+                    ) { Text("Export") }
                     TextButton(onClick = { showUnitsDialog = true }) {
                         Text(if (effectiveUnit == DistanceUnit.FEET) "Units: ft" else "Units: m")
                     }
@@ -237,4 +247,14 @@ private fun CreateCourseDialog(onDismiss: () -> Unit, onCreate: (String, Int) ->
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
+}
+
+private fun shareExportFile(context: Context, file: File) {
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "application/json"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    context.startActivity(Intent.createChooser(intent, "Export DG Scout data"))
 }
