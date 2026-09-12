@@ -79,6 +79,17 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun importFromJson(jsonText: String, onResult: (Result<Int>) -> Unit) {
+        viewModelScope.launch {
+            val result = runCatching {
+                val existingNames = _courses.value.map { it.name }
+                repository.importCourses(jsonText, existingNames).size
+            }
+            refresh()
+            onResult(result)
+        }
+    }
+
     private fun updateCourse(courseId: String, transform: (Course) -> Course) {
         val current = _courses.value.find { it.id == courseId } ?: return
         val updated = transform(current)

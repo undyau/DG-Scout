@@ -58,6 +58,36 @@ class CourseRepository(context: Context) {
         file
     }
 
+    /**
+     * Imports every course from a previously exported bundle. Each imported course always gets a
+     * fresh id (so re-importing the same file, or a file from another device, never overwrites or
+     * merges with an existing course) and, if its name clashes with an existing or already-imported
+     * course, an automatically incremented suffix.
+     */
+    suspend fun importCourses(jsonText: String, existingNames: Collection<String>): List<Course> =
+        withContext(Dispatchers.IO) {
+            val root = JSONObject(jsonText)
+            val coursesArray = root.optJSONArray("courses") ?: JSONArray()
+            val usedNames = existingNames.mapTo(mutableSetOf()) { it.lowercase() }
+            val imported = mutableListOf<Course>()
+            for (i in 0 until coursesArray.length()) {
+                val parsed = parseCourse(coursesArray.getJSONObject(i))
+                val name = uniqueName(parsed.name, usedNames)
+                usedNames += name.lowercase()
+                val course = parsed.copy(id = UUID.randomUUID().toString(), name = name)
+                saveCourse(course)
+                imported += course
+            }
+            imported
+        }
+
+    private fun uniqueName(base: String, used: Set<String>): String {
+        if (base.lowercase() !in used) return base
+        var suffix = 2
+        while ("$base ($suffix)".lowercase() in used) suffix++
+        return "$base ($suffix)"
+    }
+
     companion object {
         fun newCourse(name: String, holeCount: Int): Course {
             val now = System.currentTimeMillis()

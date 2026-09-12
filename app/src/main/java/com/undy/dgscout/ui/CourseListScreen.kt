@@ -2,6 +2,9 @@ package com.undy.dgscout.ui
 
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,6 +35,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +46,9 @@ import androidx.compose.ui.unit.dp
 import com.undy.dgscout.model.Course
 import com.undy.dgscout.model.DistanceUnit
 import com.undy.dgscout.model.UnitPreference
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -53,17 +60,41 @@ fun CourseListScreen(
     onOpenCourse: (String) -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val courses by viewModel.courses.collectAsState()
     val unitPreference by viewModel.unitPreference.collectAsState()
     val effectiveUnit by viewModel.effectiveDistanceUnit.collectAsState()
     var showCreateDialog by remember { mutableStateOf(false) }
     var showUnitsDialog by remember { mutableStateOf(false) }
 
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val text = withContext(Dispatchers.IO) {
+                runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } }
+                    .getOrNull()
+            }
+            if (text == null) {
+                Toast.makeText(context, "Couldn't read that file", Toast.LENGTH_SHORT).show()
+            } else {
+                viewModel.importFromJson(text) { result ->
+                    result.onSuccess { count ->
+                        val word = if (count == 1) "course" else "courses"
+                        Toast.makeText(context, "Imported $count $word", Toast.LENGTH_SHORT).show()
+                    }.onFailure {
+                        Toast.makeText(context, "Import failed: not a valid DG Scout export", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("DG Scout") },
                 actions = {
+                    TextButton(onClick = { importLauncher.launch(arrayOf("application/json")) }) { Text("Import") }
                     TextButton(
                         onClick = { viewModel.exportAllData { file -> shareExportFile(context, file) } },
                         enabled = courses.isNotEmpty()
