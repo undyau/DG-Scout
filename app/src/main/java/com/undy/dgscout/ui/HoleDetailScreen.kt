@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -64,13 +65,20 @@ fun HoleDetailScreen(
     viewModel: CourseViewModel,
     courseId: String,
     holeNumber: Int,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToHole: (Int) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val courses by viewModel.courses.collectAsState()
-    val hole = courses.find { it.id == courseId }?.holes?.find { it.number == holeNumber }
+    val course = courses.find { it.id == courseId }
+    val hole = course?.holes?.find { it.number == holeNumber }
     val unit by viewModel.effectiveDistanceUnit.collectAsState()
+
+    val holeNumbers = remember(course) { course?.holes?.map { it.number }?.sorted() ?: emptyList() }
+    val currentIndex = holeNumbers.indexOf(holeNumber)
+    val previousHoleNumber = holeNumbers.getOrNull(currentIndex - 1)
+    val nextHoleNumber = holeNumbers.getOrNull(currentIndex + 1)
 
     var hasPermission by remember { mutableStateOf(hasLocationPermission(context)) }
     var pendingAction by remember { mutableStateOf<(() -> Unit)?>(null) }
@@ -123,6 +131,24 @@ fun HoleDetailScreen(
                     }
                 }
             )
+        },
+        bottomBar = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                OutlinedButton(
+                    onClick = { previousHoleNumber?.let(onNavigateToHole) },
+                    enabled = previousHoleNumber != null
+                ) { Text("Previous") }
+                OutlinedButton(
+                    onClick = { nextHoleNumber?.let(onNavigateToHole) },
+                    enabled = nextHoleNumber != null
+                ) { Text("Next") }
+            }
         }
     ) { innerPadding ->
         if (hole == null) {

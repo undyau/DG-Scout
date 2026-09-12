@@ -66,7 +66,12 @@ fun DGScoutApp() {
                 viewModel = viewModel,
                 courseId = courseId,
                 holeNumber = holeNumber,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onNavigateToHole = { newHoleNumber ->
+                    navController.navigate("course/$courseId/hole/$newHoleNumber") {
+                        popUpTo("course/$courseId/hole/$holeNumber") { inclusive = true }
+                    }
+                }
             )
         }
     }
