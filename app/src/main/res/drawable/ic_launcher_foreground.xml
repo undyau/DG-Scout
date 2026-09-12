@@ -14,7 +14,7 @@
     <group>
         <clip-path
             android:pathData="M256,272m-172,0a172,172 0,1 1,344 0a172,172 0,1 1,-344 0" />
-        <!-- disc golf disc, split diagonally green/red -->
+        <!-- disc golf disc, solid green -->
         <path android:pathData="M60,60h450v450h-450z">
             <aapt:attr name="android:fillColor">
                 <gradient
@@ -28,69 +28,48 @@
                 </gradient>
             </aapt:attr>
         </path>
-        <path android:pathData="M428,100l0,344l-344,0z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:startX="84"
-                    android:startY="100"
-                    android:endX="428"
-                    android:endY="444"
-                    android:type="linear">
-                    <item android:offset="0" android:color="#FFE53935" />
-                    <item android:offset="1" android:color="#FFC62828" />
-                </gradient>
-            </aapt:attr>
-        </path>
-        <path
-            android:fillColor="#FF000000"
-            android:pathData="M428,100L84,444"
-            android:strokeAlpha="0.25"
-            android:strokeWidth="4"
-            android:strokeColor="#FFFFFF"
-            android:fillAlpha="0.25" />
-        <!-- scrawled-note squiggles across the green half -->
+        <!-- scrawled-note squiggles across the disc -->
         <path
             android:pathData="M148,206 Q158,190 168,206 Q178,222 188,206"
             android:fillColor="#00000000"
             android:strokeColor="#FFFFFF"
-            android:strokeWidth="3"
-            android:strokeAlpha="0.22"
+            android:strokeWidth="3.5"
+            android:strokeAlpha="0.42"
             android:strokeLineCap="round" />
         <path
             android:pathData="M164,176 Q174,160 184,176 Q194,192 204,176"
             android:fillColor="#00000000"
             android:strokeColor="#FFFFFF"
-            android:strokeWidth="3"
-            android:strokeAlpha="0.22"
+            android:strokeWidth="3.5"
+            android:strokeAlpha="0.42"
             android:strokeLineCap="round" />
         <path
             android:pathData="M124,233 Q139,220 154,233"
             android:fillColor="#00000000"
             android:strokeColor="#FFFFFF"
-            android:strokeWidth="3"
-            android:strokeAlpha="0.22"
+            android:strokeWidth="3.5"
+            android:strokeAlpha="0.42"
             android:strokeLineCap="round" />
-        <!-- scrawled-note squiggles across the red half -->
         <path
             android:pathData="M317,353 Q327,337 337,353 Q347,369 357,353"
             android:fillColor="#00000000"
             android:strokeColor="#FFFFFF"
-            android:strokeWidth="3"
-            android:strokeAlpha="0.22"
+            android:strokeWidth="3.5"
+            android:strokeAlpha="0.42"
             android:strokeLineCap="round" />
         <path
             android:pathData="M348,322 Q358,306 368,322 Q378,338 388,322"
             android:fillColor="#00000000"
             android:strokeColor="#FFFFFF"
-            android:strokeWidth="3"
-            android:strokeAlpha="0.22"
+            android:strokeWidth="3.5"
+            android:strokeAlpha="0.42"
             android:strokeLineCap="round" />
         <path
             android:pathData="M291,384 Q306,371 321,384"
             android:fillColor="#00000000"
             android:strokeColor="#FFFFFF"
-            android:strokeWidth="3"
-            android:strokeAlpha="0.22"
+            android:strokeWidth="3.5"
+            android:strokeAlpha="0.42"
             android:strokeLineCap="round" />
     </group>
     <!-- disc rim (bevel) -->
