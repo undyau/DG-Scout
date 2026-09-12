@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import com.undy.dgscout.model.DistanceUnit
 import com.undy.dgscout.model.GeoPoint
 import com.undy.dgscout.model.Note
+import com.undy.dgscout.location.combinedAccuracy
 import com.undy.dgscout.location.distanceInMeters
 import com.undy.dgscout.location.formatAccuracy
 import com.undy.dgscout.location.formatDistance
@@ -111,9 +112,10 @@ fun HoleDetailScreen(
         }
     }
 
-    // Poll for a fresh fix every few seconds while this hole is open and a basket is recorded.
-    LaunchedEffect(hole?.basket, hasPermission) {
-        if (hole?.basket == null || !hasPermission) return@LaunchedEffect
+    // Poll for a fresh fix every few seconds while this hole is open, so distance to the
+    // basket and to any located notes can stay current.
+    LaunchedEffect(hasPermission) {
+        if (!hasPermission) return@LaunchedEffect
         while (isActive) {
             val location = getCurrentLocation(context)
             if (location != null) currentLocation = location
@@ -196,6 +198,8 @@ fun HoleDetailScreen(
             NotesSection(
                 modifier = Modifier.weight(1f),
                 notes = hole.notes,
+                currentLocation = currentLocation,
+                unit = unit,
                 hasPermission = hasPermission,
                 onAddNote = { text, attachLocation ->
                     if (attachLocation) {
@@ -260,13 +264,15 @@ private fun BasketCard(
                 Text("No basket position recorded yet.")
             } else {
                 Text("Recorded ${timeFormat.format(basket.recordedAtEpochMs)}")
-                Text("%.5f, %.5f".format(basket.latitude, basket.longitude) + (basket.accuracyMeters?.let { " (${formatAccuracy(it, unit)})" } ?: ""))
 
                 val distanceText = if (currentLocation != null) {
                     val meters = distanceInMeters(currentLocation.latitude, currentLocation.longitude, basket.latitude, basket.longitude)
-                    "${formatDistance(meters, unit)} to basket"
+                    val accuracy = combinedAccuracy(basket.accuracyMeters, currentLocation.accuracy)
+                    val accuracySuffix = accuracy?.let { " (${formatAccuracy(it, unit)})" } ?: ""
+                    "${formatDistance(meters, unit)} to basket$accuracySuffix"
                 } else {
-                    "Waiting for GPS fix to measure distance…"
+                    val recordedSuffix = basket.accuracyMeters?.let { " (recorded to within ${formatAccuracy(it, unit)})" } ?: ""
+                    "Waiting for GPS fix to measure distance…$recordedSuffix"
                 }
                 Text(distanceText, modifier = Modifier.padding(top = 4.dp))
             }
@@ -290,6 +296,8 @@ private fun BasketCard(
 @Composable
 private fun NotesSection(
     notes: List<Note>,
+    currentLocation: Location?,
+    unit: DistanceUnit,
     hasPermission: Boolean,
     onAddNote: (String, Boolean) -> Unit,
     onUpdateNote: (String, String) -> Unit,
@@ -368,8 +376,18 @@ private fun NotesSection(
                             }
                         } else {
                             Text(note.text)
-                            val locationSuffix = note.location?.let {
-                                " · %.5f, %.5f".format(it.latitude, it.longitude)
+                            val locationSuffix = note.location?.let { location ->
+                                if (currentLocation != null) {
+                                    val meters = distanceInMeters(
+                                        currentLocation.latitude, currentLocation.longitude,
+                                        location.latitude, location.longitude
+                                    )
+                                    val accuracy = combinedAccuracy(location.accuracyMeters, currentLocation.accuracy)
+                                    val accuracySuffix = accuracy?.let { " (${formatAccuracy(it, unit)})" } ?: ""
+                                    " · ${formatDistance(meters, unit)} away$accuracySuffix"
+                                } else {
+                                    location.accuracyMeters?.let { " · recorded to within ${formatAccuracy(it, unit)}" } ?: ""
+                                }
                             } ?: ""
                             Text(
                                 "${timeFormat.format(note.updatedAtEpochMs)}$locationSuffix",

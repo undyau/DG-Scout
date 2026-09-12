@@ -15,6 +15,7 @@ import com.undy.dgscout.model.isUnitedStates
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.Locale
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 const val METERS_PER_FOOT = 0.3048
 private const val FEET_PER_METER = 1.0 / METERS_PER_FOOT
@@ -73,4 +74,15 @@ fun formatDistance(meters: Double, unit: DistanceUnit): String = when (unit) {
 fun formatAccuracy(accuracyMeters: Float, unit: DistanceUnit): String = when (unit) {
     DistanceUnit.FEET -> "±${(accuracyMeters * FEET_PER_METER).roundToInt()} ft"
     DistanceUnit.METERS -> "±${accuracyMeters.roundToInt()} m"
+}
+
+/**
+ * The error in a distance between two GPS fixes is driven by both endpoints' own uncertainty.
+ * Combine them in quadrature (assuming independent errors) rather than just picking one.
+ */
+fun combinedAccuracy(a: Float?, b: Float?): Float? = when {
+    a != null && b != null -> sqrt(a * a + b * b)
+    a != null -> a
+    b != null -> b
+    else -> null
 }
