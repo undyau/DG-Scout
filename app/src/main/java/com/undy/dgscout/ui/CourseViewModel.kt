@@ -60,7 +60,7 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
 
     fun createCourse(name: String, holeCount: Int) {
         viewModelScope.launch {
-            val course = CourseRepository.newCourse(name.ifBlank { "Untitled Course" }, holeCount.coerceIn(1, 36))
+            val course = CourseRepository.newCourse(name.trim().ifBlank { "Untitled Course" }, holeCount.coerceIn(1, 36))
             repository.saveCourse(course)
             refresh()
         }
