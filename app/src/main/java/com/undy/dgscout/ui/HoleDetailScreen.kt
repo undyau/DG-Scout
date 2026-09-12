@@ -44,9 +44,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.undy.dgscout.model.DistanceUnit
 import com.undy.dgscout.model.GeoPoint
 import com.undy.dgscout.model.Note
-import com.undy.dgscout.location.distanceInFeet
+import com.undy.dgscout.location.distanceInMeters
+import com.undy.dgscout.location.formatAccuracy
+import com.undy.dgscout.location.formatDistance
 import com.undy.dgscout.location.getCurrentLocation
 import com.undy.dgscout.location.hasLocationPermission
 import kotlinx.coroutines.delay
@@ -54,7 +57,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
-import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,6 +70,7 @@ fun HoleDetailScreen(
     val scope = rememberCoroutineScope()
     val courses by viewModel.courses.collectAsState()
     val hole = courses.find { it.id == courseId }?.holes?.find { it.number == holeNumber }
+    val unit by viewModel.effectiveDistanceUnit.collectAsState()
 
     var hasPermission by remember { mutableStateOf(hasLocationPermission(context)) }
     var pendingAction by remember { mutableStateOf<(() -> Unit)?>(null) }
@@ -142,6 +145,7 @@ fun HoleDetailScreen(
             BasketCard(
                 basket = hole.basket,
                 currentLocation = currentLocation,
+                unit = unit,
                 isFetching = isFetchingBasket,
                 onSetBasket = {
                     runWithLocationPermission {
@@ -215,6 +219,7 @@ private fun ParRow(par: Int?, onParChange: (Int?) -> Unit) {
 private fun BasketCard(
     basket: GeoPoint?,
     currentLocation: Location?,
+    unit: DistanceUnit,
     isFetching: Boolean,
     onSetBasket: () -> Unit,
     onClearBasket: () -> Unit
@@ -229,10 +234,11 @@ private fun BasketCard(
                 Text("No basket position recorded yet.")
             } else {
                 Text("Recorded ${timeFormat.format(basket.recordedAtEpochMs)}")
-                Text("%.5f, %.5f".format(basket.latitude, basket.longitude) + (basket.accuracyMeters?.let { " (±${it.roundToInt()} m)" } ?: ""))
+                Text("%.5f, %.5f".format(basket.latitude, basket.longitude) + (basket.accuracyMeters?.let { " (${formatAccuracy(it, unit)})" } ?: ""))
 
                 val distanceText = if (currentLocation != null) {
-                    "${distanceInFeet(currentLocation.latitude, currentLocation.longitude, basket.latitude, basket.longitude).roundToInt()} ft to basket"
+                    val meters = distanceInMeters(currentLocation.latitude, currentLocation.longitude, basket.latitude, basket.longitude)
+                    "${formatDistance(meters, unit)} to basket"
                 } else {
                     "Waiting for GPS fix to measure distance…"
                 }

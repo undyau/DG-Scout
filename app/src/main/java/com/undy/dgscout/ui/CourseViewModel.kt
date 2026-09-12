@@ -1,27 +1,54 @@
 package com.undy.dgscout.ui
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.undy.dgscout.data.CourseRepository
 import com.undy.dgscout.model.Course
+import com.undy.dgscout.location.deviceDefaultDistanceUnit
+import com.undy.dgscout.model.DistanceUnit
 import com.undy.dgscout.model.GeoPoint
 import com.undy.dgscout.model.Note
+import com.undy.dgscout.model.UnitPreference
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
 
 class CourseViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = CourseRepository(application)
+    private val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val _courses = MutableStateFlow<List<Course>>(emptyList())
     val courses: StateFlow<List<Course>> = _courses.asStateFlow()
 
+    val localeDefaultUnit: DistanceUnit = deviceDefaultDistanceUnit(application)
+
+    private val _unitPreference = MutableStateFlow(loadUnitPreference())
+    val unitPreference: StateFlow<UnitPreference> = _unitPreference.asStateFlow()
+
+    val effectiveDistanceUnit: StateFlow<DistanceUnit> = _unitPreference
+        .map { it.resolve(localeDefaultUnit) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, _unitPreference.value.resolve(localeDefaultUnit))
+
     init {
         refresh()
+    }
+
+    fun setUnitPreference(preference: UnitPreference) {
+        _unitPreference.value = preference
+        prefs.edit().putString(KEY_UNIT_PREFERENCE, preference.name).apply()
+    }
+
+    private fun loadUnitPreference(): UnitPreference {
+        val stored = prefs.getString(KEY_UNIT_PREFERENCE, null) ?: return UnitPreference.AUTOMATIC
+        return runCatching { UnitPreference.valueOf(stored) }.getOrDefault(UnitPreference.AUTOMATIC)
     }
 
     fun refresh() {
@@ -95,5 +122,10 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
         course.copy(holes = course.holes.map { hole ->
             if (hole.number != holeNumber) hole else hole.copy(notes = hole.notes.filter { it.id != noteId })
         })
+    }
+
+    companion object {
+        private const val PREFS_NAME = "dgscout_settings"
+        private const val KEY_UNIT_PREFERENCE = "unit_preference"
     }
 }

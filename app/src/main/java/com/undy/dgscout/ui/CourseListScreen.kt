@@ -19,6 +19,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,10 +30,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.undy.dgscout.model.Course
+import com.undy.dgscout.model.DistanceUnit
+import com.undy.dgscout.model.UnitPreference
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -43,10 +47,22 @@ fun CourseListScreen(
     onOpenCourse: (String) -> Unit
 ) {
     val courses by viewModel.courses.collectAsState()
+    val unitPreference by viewModel.unitPreference.collectAsState()
+    val effectiveUnit by viewModel.effectiveDistanceUnit.collectAsState()
     var showCreateDialog by remember { mutableStateOf(false) }
+    var showUnitsDialog by remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("DG Scout") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("DG Scout") },
+                actions = {
+                    TextButton(onClick = { showUnitsDialog = true }) {
+                        Text(if (effectiveUnit == DistanceUnit.FEET) "Units: ft" else "Units: m")
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { showCreateDialog = true }) {
                 Icon(Icons.Filled.Add, contentDescription = "New course")
@@ -89,6 +105,52 @@ fun CourseListScreen(
                 showCreateDialog = false
             }
         )
+    }
+
+    if (showUnitsDialog) {
+        UnitsDialog(
+            current = unitPreference,
+            localeDefault = viewModel.localeDefaultUnit,
+            onSelect = { viewModel.setUnitPreference(it) },
+            onDismiss = { showUnitsDialog = false }
+        )
+    }
+}
+
+@Composable
+private fun UnitsDialog(
+    current: UnitPreference,
+    localeDefault: DistanceUnit,
+    onSelect: (UnitPreference) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val autoLabel = "Automatic (" + (if (localeDefault == DistanceUnit.FEET) "feet" else "metres") + ")"
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Distance units") },
+        text = {
+            Column {
+                UnitOptionRow(autoLabel, current == UnitPreference.AUTOMATIC) { onSelect(UnitPreference.AUTOMATIC) }
+                UnitOptionRow("Feet", current == UnitPreference.FEET) { onSelect(UnitPreference.FEET) }
+                UnitOptionRow("Metres", current == UnitPreference.METERS) { onSelect(UnitPreference.METERS) }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Done") }
+        }
+    )
+}
+
+@Composable
+private fun UnitOptionRow(label: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Text(label, modifier = Modifier.padding(start = 4.dp))
     }
 }
 
