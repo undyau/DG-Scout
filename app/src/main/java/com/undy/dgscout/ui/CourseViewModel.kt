@@ -38,6 +38,9 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
         .map { it.resolve(localeDefaultUnit) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, _unitPreference.value.resolve(localeDefaultUnit))
 
+    private val _attachLocationToNotes = MutableStateFlow(prefs.getBoolean(KEY_ATTACH_LOCATION_TO_NOTES, true))
+    val attachLocationToNotes: StateFlow<Boolean> = _attachLocationToNotes.asStateFlow()
+
     init {
         refresh()
     }
@@ -50,6 +53,11 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
     private fun loadUnitPreference(): UnitPreference {
         val stored = prefs.getString(KEY_UNIT_PREFERENCE, null) ?: return UnitPreference.AUTOMATIC
         return runCatching { UnitPreference.valueOf(stored) }.getOrDefault(UnitPreference.AUTOMATIC)
+    }
+
+    fun setAttachLocationToNotes(attach: Boolean) {
+        _attachLocationToNotes.value = attach
+        prefs.edit().putBoolean(KEY_ATTACH_LOCATION_TO_NOTES, attach).apply()
     }
 
     fun refresh() {
@@ -145,5 +153,6 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
     companion object {
         private const val PREFS_NAME = "dgscout_settings"
         private const val KEY_UNIT_PREFERENCE = "unit_preference"
+        private const val KEY_ATTACH_LOCATION_TO_NOTES = "attach_location_to_notes"
     }
 }

@@ -75,6 +75,7 @@ fun HoleDetailScreen(
     val course = courses.find { it.id == courseId }
     val hole = course?.holes?.find { it.number == holeNumber }
     val unit by viewModel.effectiveDistanceUnit.collectAsState()
+    val attachLocationToNotes by viewModel.attachLocationToNotes.collectAsState()
 
     val holeNumbers = remember(course) { course?.holes?.map { it.number }?.sorted() ?: emptyList() }
     val currentIndex = holeNumbers.indexOf(holeNumber)
@@ -201,6 +202,8 @@ fun HoleDetailScreen(
                 currentLocation = currentLocation,
                 unit = unit,
                 hasPermission = hasPermission,
+                attachLocation = attachLocationToNotes,
+                onAttachLocationChange = viewModel::setAttachLocationToNotes,
                 onAddNote = { text, attachLocation ->
                     if (attachLocation) {
                         runWithLocationPermission {
@@ -299,6 +302,8 @@ private fun NotesSection(
     currentLocation: Location?,
     unit: DistanceUnit,
     hasPermission: Boolean,
+    attachLocation: Boolean,
+    onAttachLocationChange: (Boolean) -> Unit,
     onAddNote: (String, Boolean) -> Unit,
     onUpdateNote: (String, String) -> Unit,
     onDeleteNote: (String) -> Unit,
@@ -306,7 +311,6 @@ private fun NotesSection(
 ) {
     var isComposing by remember { mutableStateOf(false) }
     var draftText by remember { mutableStateOf("") }
-    var attachLocation by remember { mutableStateOf(true) }
     var editingNoteId by remember { mutableStateOf<String?>(null) }
     var editingText by remember { mutableStateOf("") }
 
@@ -335,7 +339,7 @@ private fun NotesSection(
                         modifier = Modifier.padding(top = 4.dp),
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                     ) {
-                        Checkbox(checked = attachLocation, onCheckedChange = { attachLocation = it }, enabled = hasPermission)
+                        Checkbox(checked = attachLocation, onCheckedChange = onAttachLocationChange, enabled = hasPermission)
                         Text("Attach my current location")
                     }
                     Row(modifier = Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
