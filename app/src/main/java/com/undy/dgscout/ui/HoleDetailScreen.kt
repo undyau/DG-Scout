@@ -79,8 +79,10 @@ fun HoleDetailScreen(
 
     val holeNumbers = remember(course) { course?.holes?.map { it.number }?.sorted() ?: emptyList() }
     val currentIndex = holeNumbers.indexOf(holeNumber)
-    val previousHoleNumber = holeNumbers.getOrNull(currentIndex - 1)
-    val nextHoleNumber = holeNumbers.getOrNull(currentIndex + 1)
+    // Previous/next wrap around at the ends of the course; with a single hole there is nowhere to go.
+    val canCycle = currentIndex >= 0 && holeNumbers.size > 1
+    val previousHoleNumber = if (canCycle) holeNumbers[(currentIndex - 1 + holeNumbers.size) % holeNumbers.size] else null
+    val nextHoleNumber = if (canCycle) holeNumbers[(currentIndex + 1) % holeNumbers.size] else null
 
     var hasPermission by remember { mutableStateOf(hasLocationPermission(context)) }
     var pendingAction by remember { mutableStateOf<(() -> Unit)?>(null) }
