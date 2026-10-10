@@ -37,8 +37,8 @@ Or open the project in Android Studio and run the `app` configuration.
 
 The app requests `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` to
 record basket positions, tag notes with a location, and compute live
-distances. Location is only read on demand (setting a basket, adding a
-note, or refreshing distance on the hole screen) and is never sent
+distances. Location is only read while a hole screen is open (GPS stays
+on there so it can settle to an accurate fix) and is never sent
 anywhere off the device.
 
 ## Project layout

@@ -52,10 +52,10 @@ import com.undy.dgscout.location.combinedAccuracy
 import com.undy.dgscout.location.distanceInMeters
 import com.undy.dgscout.location.formatAccuracy
 import com.undy.dgscout.location.formatDistance
-import com.undy.dgscout.location.getCurrentLocation
+import com.undy.dgscout.location.getAccurateLocation
 import com.undy.dgscout.location.hasLocationPermission
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
+import com.undy.dgscout.location.isFresh
+import com.undy.dgscout.location.locationUpdates
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -113,15 +113,11 @@ fun HoleDetailScreen(
         }
     }
 
-    // Poll for a fresh fix every few seconds while this hole is open, so distance to the
-    // basket and to any located notes can stay current.
+    // Keep the GPS running while this hole is open, so it can settle to a tight fix and the
+    // distance to the basket and to any located notes stays current.
     LaunchedEffect(hasPermission) {
         if (!hasPermission) return@LaunchedEffect
-        while (isActive) {
-            val location = getCurrentLocation(context)
-            if (location != null) currentLocation = location
-            delay(4000)
-        }
+        locationUpdates(context).collect { currentLocation = it }
     }
 
     Scaffold(
@@ -180,7 +176,7 @@ fun HoleDetailScreen(
                     runWithLocationPermission {
                         isFetchingBasket = true
                         scope.launch {
-                            val location = getCurrentLocation(context)
+                            val location = getAccurateLocation(context)
                             isFetchingBasket = false
                             if (location != null) {
                                 viewModel.setBasket(
@@ -208,7 +204,10 @@ fun HoleDetailScreen(
                     if (attachLocation) {
                         runWithLocationPermission {
                             scope.launch {
-                                val location = getCurrentLocation(context)
+                                // The live stream has usually settled by now; only wait if it hasn't
+                                // produced a recent fix yet.
+                                val location = currentLocation?.takeIf(::isFresh)
+                                    ?: getAccurateLocation(context, timeoutMs = 5_000L)
                                 val geoPoint = location?.let {
                                     GeoPoint(it.latitude, it.longitude, it.accuracy, System.currentTimeMillis())
                                 }
